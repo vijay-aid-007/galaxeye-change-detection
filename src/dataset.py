@@ -22,8 +22,7 @@ import numpy as np
 import torch
 from torch.utils.data import Dataset
 from datasets import load_dataset
-from src.transforms import get_train_transforms, get_val_transforms
-
+from transforms import get_train_transforms, get_val_transforms
 
 # ------------------------------------------------------------------
 # Label remapping — applied to every mask, no exceptions
