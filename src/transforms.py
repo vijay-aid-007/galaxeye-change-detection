@@ -10,8 +10,6 @@ def get_train_transforms(image_size=512):
         A.HorizontalFlip(p=0.5),
         A.VerticalFlip(p=0.5),
         A.RandomRotate90(p=0.5),
-        A.ColorJitter(brightness=0.2, contrast=0.2, p=0.3),
-        A.GaussNoise(var_limit=(5.0, 20.0), p=0.2),
         A.Normalize(mean=NORM_MEAN, std=NORM_STD),
         ToTensorV2(),
     ])
