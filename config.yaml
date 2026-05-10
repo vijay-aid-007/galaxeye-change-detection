@@ -1,0 +1,67 @@
+# config.yaml — GalaxEye Change Detection
+# All hyperparameters logged here per GalaxEye submission requirements.
+# Pass this file to train.py: python train.py --config config.yaml
+
+# ── Reproducibility ─────────────────────────────────────────────
+seed: 42
+
+# ── Dataset ─────────────────────────────────────────────────────
+dataset:
+  name: "doron333/change-detection-dataset"
+  image_size: 512          # crop size fed to model (original is 1024x1024)
+  num_workers: 2           # increase to 4 if you have more CPU cores
+
+# ── Model ───────────────────────────────────────────────────────
+model:
+  architecture: "unet"
+  encoder: "resnet34"      # ImageNet pretrained backbone
+  in_channels: 4           # 3 EO (RGB) + 1 SAR (grayscale)
+  out_channels: 1          # binary segmentation
+  pretrained: true         # use ImageNet weights for encoder
+
+# ── Training ────────────────────────────────────────────────────
+training:
+  epochs: 50
+  warmup_epochs: 5         # Phase 1: encoder frozen, decoder trains only
+                           # Phase 2: full end-to-end from epoch 6 onward
+  batch_size: 8
+  optimizer: "adamw"
+  learning_rate: 0.0001    # decoder LR; encoder gets 0.1x = 0.00001
+  weight_decay: 0.01
+  scheduler: "cosine"      # CosineAnnealingLR
+  scheduler_T_max: 50      # = epochs
+  gradient_clip: 1.0       # gradient clipping max norm
+
+# ── Loss Function ────────────────────────────────────────────────
+# Rationale: 99.39% no-change vs 0.61% change (from EDA).
+# Focal loss down-weights easy negatives.
+# Dice loss directly optimises overlap regardless of class frequency.
+loss:
+  type: "focal_dice"
+  focal_weight: 0.5
+  dice_weight: 0.5
+  focal_alpha: 0.75        # higher alpha = more penalty for missing change pixels
+  focal_gamma: 2.0         # standard Lin et al. 2017 recommendation
+
+# ── Evaluation ──────────────────────────────────────────────────
+evaluation:
+  primary_metric: "f1"     # metric used for best model checkpoint
+  threshold: 0.5           # classification threshold (tuned after training)
+  # threshold search is run on validation set after training
+
+# ── Paths ────────────────────────────────────────────────────────
+paths:
+  checkpoint_dir: "checkpoints/"
+  best_model: "checkpoints/best_model.pth"
+  logs_dir: "logs/"
+
+# ── Augmentations ────────────────────────────────────────────────
+# Applied during training only. Validation/test use center crop + normalize.
+augmentations:
+  random_crop: true
+  horizontal_flip: true
+  vertical_flip: true
+  random_rotate90: true
+  color_jitter: true       # applied to EO channels only (brightness, contrast)
+  gaussian_noise: true     # simulates SAR speckle variation
+  # Normalization: ImageNet mean/std for RGB + 0.5/0.25 for SAR channel
