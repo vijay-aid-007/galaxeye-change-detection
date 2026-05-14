@@ -28,9 +28,9 @@ to 0.955 on individual validation samples with actual damage. Full analysis
 in the technical report.
 
 ---
-Model weights link —  **[ https://drive.google.com/file/d/1oTnWJ8InrZBs2arlWKmrS2eK_EnWuJoi/view?usp=sharing ](#)** 
+**[Model weights link] — **[https://drive.google.com/file/d/1oTnWJ8InrZBs2arlWKmrS2eK_EnWuJoi/view?usp=sharing](#)** 
 ---
-Model Check points — **[ https://drive.google.com/drive/folders/1LNl-GkWTJLfga-gPoabBJQkDMkSxY6P7?usp=sharing ](#)** 
+**[Model Check points] — **[https://drive.google.com/drive/folders/1LNl-GkWTJLfga-gPoabBJQkDMkSxY6P7?usp=sharing](#)** 
 ---
 
 ## Requirements
