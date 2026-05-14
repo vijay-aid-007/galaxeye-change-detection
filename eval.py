@@ -6,7 +6,7 @@ Usage:
     python eval.py --config config.yaml \
                    --weights checkpoints/best_model.pth \
                    --split test \
-                   --threshold 0.5 \
+                   --threshold 0.35 \
                    --visualize
 
 What this does:
@@ -24,10 +24,13 @@ import torch
 import matplotlib.pyplot as plt
 import matplotlib.patches as mpatches
 
-from src.dataset import build_dataloaders, ChangeDetectionDataset, get_val_transforms
 from src.model   import build_model
 from src.metrics import ChangeMetrics
-from datasets    import load_dataset
+from datasets import load_dataset, DatasetDict
+from typing import cast
+
+from src.dataset    import build_dataloaders, ChangeDetectionDataset
+from src.transforms import get_val_transforms
 
 
 def load_config(path):
@@ -198,7 +201,8 @@ def main():
     # Visualize
     if args.visualize:
         print("\nGenerating prediction visualizations...")
-        ds = load_dataset("doron333/change-detection-dataset")
+        ds = cast(DatasetDict, load_dataset("doron333/change-detection-dataset"))
+
         split_map = {
             'train'     : ('train',      2781),
             'validation': ('validation', 334),

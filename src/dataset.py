@@ -16,13 +16,22 @@ Label remapping (mandatory per GalaxEye spec):
   3 (Destroyed)  → 1 (Change)
 
 Input to model: 4-channel tensor [EO_R, EO_G, EO_B, SAR] normalized to [0,1]
+
+FIXES:
+  FIX 1: Added assertion that len(hf_split) % 3 == 0 to catch upstream dataset
+          changes that would silently drop samples via integer division.
+  FIX 2: Added KeyError guard on the 'image' key with a descriptive error message
+          so schema changes surface clearly instead of as confusing tracebacks.
 """
 
 import numpy as np
 import torch
+from typing import cast
 from torch.utils.data import Dataset
-from datasets import load_dataset
-from transforms import get_train_transforms, get_val_transforms
+from datasets import load_dataset, DatasetDict
+from datasets import Dataset as HFDataset
+
+from src.transforms import get_train_transforms, get_val_transforms
 
 # ------------------------------------------------------------------
 # Label remapping — applied to every mask, no exceptions
@@ -38,6 +47,22 @@ def remap_mask(mask: np.ndarray) -> np.ndarray:
     return REMAP[clipped]
 
 
+def _get_image(sample: dict, idx: int) -> np.ndarray:
+    """
+    FIX 2: Safe accessor for the 'image' key.
+    Raises a descriptive ValueError instead of a bare KeyError if the
+    HuggingFace dataset schema changes and 'image' is no longer present.
+    """
+    if 'image' not in sample:
+        available = list(sample.keys())
+        raise ValueError(
+            f"Expected key 'image' in dataset sample at index {idx}, "
+            f"but got keys: {available}. "
+            f"The HuggingFace dataset schema may have changed."
+        )
+    return np.array(sample['image'])
+
+
 # ------------------------------------------------------------------
 # Dataset class
 # ------------------------------------------------------------------
@@ -50,13 +75,26 @@ class ChangeDetectionDataset(Dataset):
         mask  : LongTensor  [H, W]     — binary {0, 1}
     """
 
-    def __init__(self, hf_split, block_size: int, transform=None):
+    def __init__(self, hf_split: HFDataset, block_size: int, transform=None):
         """
         Args:
             hf_split   : HuggingFace dataset split (ds['train'], ds['validation'], etc.)
             block_size : Number of triplets in this split (2781 / 334 / 77)
             transform  : Albumentations transform pipeline
         """
+        # FIX 1: Assert the dataset length is evenly divisible into 3 blocks.
+        # If an upstream dataset update adds/removes samples, integer division
+        # would silently discard the remainder. This assertion surfaces it early.
+        total = len(hf_split)
+        assert total % 3 == 0, (
+            f"Dataset length {total} is not divisible by 3. "
+            f"Expected exactly 3 equal blocks (SAR / EO / mask). "
+            f"The upstream dataset may have changed."
+        )
+        assert block_size == total // 3, (
+            f"block_size={block_size} does not match len(hf_split)//3={total//3}."
+        )
+
         self.split      = hf_split
         self.block_size = block_size
         self.transform  = transform
@@ -70,19 +108,19 @@ class ChangeDetectionDataset(Dataset):
         pre_sample  = self.split[idx + self.block_size]        # EO  pre-event
         mask_sample = self.split[idx + 2 * self.block_size]    # target mask
 
-        # --- Convert to numpy ---
-        sar = np.array(post_sample['image'])   # (H, W)       uint8
-        eo  = np.array(pre_sample['image'])    # (H, W, 3)    uint8
-        mask_raw = np.array(mask_sample['image'])  # (H, W)   uint8
+        # --- Convert to numpy (FIX 2: safe accessor with descriptive error) ---
+        sar      = _get_image(post_sample, idx)                       # (H, W)    uint8
+        eo       = _get_image(pre_sample,  idx + self.block_size)     # (H, W, 3) uint8
+        mask_raw = _get_image(mask_sample, idx + 2 * self.block_size) # (H, W)    uint8
 
         # --- Remap mask to binary ---
-        mask = remap_mask(mask_raw)            # (H, W)       uint8 {0,1}
+        mask = remap_mask(mask_raw)                # (H, W)       uint8 {0,1}
 
         # --- Expand SAR to (H, W, 1) and concatenate with EO ---
         # Final image shape: (H, W, 4) — channels [R, G, B, SAR]
         sar_3d = sar[:, :, np.newaxis]
         image  = np.concatenate([eo, sar_3d], axis=-1).astype(np.float32)
-        mask   = mask.astype(np.int64)
+        mask   = mask.astype(np.float32)
 
         # --- Apply transforms ---
         if self.transform:
@@ -110,12 +148,14 @@ def build_dataloaders(cfg: dict):
     from torch.utils.data import DataLoader
 
     print("Loading dataset from HuggingFace...")
-    ds = load_dataset("doron333/change-detection-dataset")
+    # No split= here — load all splits as a DatasetDict.
+    # streaming=False ensures __getitem__ (integer indexing) is available.
+    ds = cast(DatasetDict, load_dataset("doron333/change-detection-dataset"))
     print(f"  Train triplets : {len(ds['train']) // 3}")
     print(f"  Val   triplets : {len(ds['validation']) // 3}")
     print(f"  Test  triplets : {len(ds['test']) // 3}")
 
-    image_size = cfg.get('image_size', 512)
+    image_size = cfg.get('image_size', 256)
 
     train_ds = ChangeDetectionDataset(
         hf_split   = ds['train'],
@@ -169,22 +209,21 @@ if __name__ == '__main__':
     from datasets import load_dataset
 
     print("=== dataset.py sanity check ===")
-    ds = load_dataset("doron333/change-detection-dataset")
+    ds = cast(DatasetDict, load_dataset("doron333/change-detection-dataset"))
 
     dataset = ChangeDetectionDataset(
         hf_split   = ds['train'],
         block_size = len(ds['train']) // 3,
-        transform  = get_val_transforms(512),
+        transform  = get_val_transforms(256),
     )
 
     print(f"Dataset length: {len(dataset)}")
     img, mask = dataset[0]
     print(f"Image shape : {img.shape}   dtype: {img.dtype}")
     print(f"Mask  shape : {mask.shape}  dtype: {mask.dtype}")
-    print(f"Mask unique : {mask.unique()}")
+    print(f"Mask unique : {torch.unique(mask)}")
     print(f"Image min/max: {img.min():.3f} / {img.max():.3f}")
 
-    # Verify class imbalance
     change_pct = 100 * (mask == 1).float().mean().item()
     print(f"Change pixels in this sample: {change_pct:.2f}%")
     print("PASSED — dataset.py is working correctly.")

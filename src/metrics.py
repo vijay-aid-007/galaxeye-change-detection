@@ -31,7 +31,7 @@ class ChangeMetrics:
     """
 
     def __init__(self, threshold: float = 0.5):
-        self.threshold = threshold
+        self.threshold = float(threshold)
         self.reset()
 
     def reset(self):
@@ -149,7 +149,7 @@ def find_best_threshold(logits_list, targets_list, thresholds=None):
 
     print("Threshold search:")
     for thr in thresholds:
-        m = ChangeMetrics(threshold=thr)
+        m = ChangeMetrics(threshold = thr)
         for logits, targets in zip(logits_list, targets_list):
             m.update(logits, targets)
         results = m.compute()
@@ -196,4 +196,4 @@ if __name__ == '__main__':
     assert r['iou'] == 0.0, "All-zero pred should have 0 IoU"
     assert r['f1']  == 0.0, "All-zero pred should have 0 F1"
     print("All-zero prediction test: PASSED")
-    print("metrics.py is working correctly.")
+    print("metrics.py is working correctly.")       

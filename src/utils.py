@@ -11,7 +11,9 @@ import matplotlib.patches as mpatches
 
 
 def save_checkpoint(state: dict, path: str):
-    os.makedirs(os.path.dirname(path), exist_ok=True)
+    dir_name = os.path.dirname(path)
+    if dir_name:
+        os.makedirs(dir_name, exist_ok=True)
     torch.save(state, path)
     print(f"  Checkpoint saved: {path}")
 
@@ -33,11 +35,12 @@ def plot_training_history(history: list, save_path: str = 'logs/training_history
     """
     epochs      = [h['epoch']      for h in history]
     train_loss  = [h['train_loss'] for h in history]
-    val_loss    = [h['val_loss']   for h in history]
     val_f1      = [h['f1']         for h in history]
     val_iou     = [h['iou']        for h in history]
     val_prec    = [h['precision']  for h in history]
     val_recall  = [h['recall']     for h in history]
+    val_loss = [h.get('val_loss', 0.0) for h in history]
+
 
     fig, axes = plt.subplots(1, 3, figsize=(18, 5))
 
