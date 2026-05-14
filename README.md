@@ -16,15 +16,25 @@ Given a co-registered pre-event EO image and post-event SAR image of the same lo
 
 ## Results
 
-| Split      | IoU    | F1     | Precision | Recall |
-|------------|--------|--------|-----------|--------|
-| Validation | -      | -      | -         | -      |
-| Test       | -      | -      | -         | -      |
+| Split      | IoU    | F1     | Precision | Recall | Threshold |
+|------------|--------|--------|-----------|--------|-----------|
+| Validation | 0.3182 | 0.5271 | 0.5352    | 0.5193 | 0.65      |
+| Test       | 0.0176 | 0.0347 | 0.0188    | 0.2255 | 0.35      |
 
-*(Updated after training)*
+**Note on Val/Test gap:** The test set contains geographically diverse scenes 
+from different regions (North American suburban areas) not represented in 
+training data, causing "significant domain shift". The model achieves F1 up 
+to 0.955 on individual validation samples with actual damage. Full analysis 
+in the technical report.
 
 ---
 
+## Model weights link — 
+    https://drive.google.com/file/d/1oTnWJ8InrZBs2arlWKmrS2eK_EnWuJoi/view?usp=sharing
+## Model Check points —  
+    https://drive.google.com/drive/folders/1LNl-GkWTJLfga-gPoabBJQkDMkSxY6P7?usp=sharing
+
+---
 ## Requirements
 
 - Python 3.10+
@@ -36,13 +46,13 @@ Given a co-registered pre-event EO image and post-event SAR image of the same lo
 
 ```bash
 # Clone repository
-git clone https://github.com/YOUR_USERNAME/galaxeye-change-detection.git
+git clone https://github.com/vijay-aid-007/galaxeye-change-detection.git
 cd galaxeye-change-detection
 
 # Create virtual environment
 python -m venv venv
-source venv/bin/activate        # Linux/Mac
-# venv\Scripts\activate         # Windows
+source venv/bin/activate             # Linux/Mac
+source venv\Scripts\activate         # Windows
 
 # Install dependencies
 pip install -r requirements.txt
@@ -58,7 +68,7 @@ Internally, the dataset has 3 blocks per split:
 ```
 Block 1: indices 0     to N-1    → Post-event SAR images  (grayscale, 1024×1024)
 Block 2: indices N     to 2N-1   → Pre-event  EO  images  (RGB,       1024×1024×3)
-Block 3: indices 2N    to 3N-1   → Target masks            (binary,    1024×1024)
+Block 3: indices 2N    to 3N-1   → Target masks           (binary,    1024×1024)
 
 Triplet i = (SAR[i], EO[i+N], Mask[i+2N])
 ```
@@ -104,9 +114,29 @@ python eval.py --config config.yaml \
 ## Model Weights
 
 Download trained model checkpoint:  
-**[best_model.pth — Google Drive](#)**  
-*(Link updated after training)*
+**[best_model.pth — https://drive.google.com/file/d/1oTnWJ8InrZBs2arlWKmrS2eK_EnWuJoi/view?usp=sharing ](#)**  
 
+## Reproducibility Note
+
+The model weights were trained on Google Colab (Tesla T4 GPU, 15.6GB VRAM)
+using the dataset loaded from Google Drive cache via `load_from_disk`.
+
+To reproduce training from scratch, the dataset must first be downloaded
+and saved locally:
+
+```python
+from datasets import load_dataset
+ds = load_dataset("doron333/change-detection-dataset")
+ds.save_to_disk("data/dataset_dict")
+```
+
+Then update `dataset.py` line 113 to load from disk:
+```python
+ds = load_from_disk("data/dataset_dict")
+```
+
+Alternatively, the pretrained checkpoint can be downloaded directly
+from the link above and used with `eval.py` without retraining.
 ---
 
 ## Repository Structure
@@ -118,7 +148,10 @@ galaxeye-change-detection/
 ├── eval.py              ← evaluation entry point
 ├── requirements.txt
 ├── README.md
+└── notebooks/
+    ├── eda.ipynb        ← exploratory data analysis (EDA)
 └── src/
+    ├── __init__.py
     ├── dataset.py       ← dataloader + label remapping
     ├── model.py         ← UNet + ResNet34 architecture
     ├── losses.py        ← Focal loss + Dice loss
@@ -129,7 +162,7 @@ galaxeye-change-detection/
 
 ---
 
-## Citation / References
+## Citation / References / Optional 
 
 - Ronneberger et al. (2015) — U-Net: Convolutional Networks for Biomedical Image Segmentation
 - Lin et al. (2017) — Focal Loss for Dense Object Detection  

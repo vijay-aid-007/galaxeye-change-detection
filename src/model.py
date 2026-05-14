@@ -63,6 +63,9 @@ def build_model(cfg: dict) -> nn.Module:
                  else model.encoder.conv1 \
                  if hasattr(model.encoder, 'conv1') \
                  else None
+    
+    if first_conv is None:
+        print("  WARNING: Could not verify first conv layer shape")
 
     if first_conv is not None:
         print(f"  First conv shape: {first_conv.weight.shape}  "
