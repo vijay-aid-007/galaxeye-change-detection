@@ -117,8 +117,13 @@ python eval.py --config config.yaml \
 
 ## Model Weights
 
-Download trained model checkpoint:  
-**[best_model.pth — https://drive.google.com/file/d/1oTnWJ8InrZBs2arlWKmrS2eK_EnWuJoi/view?usp=sharing ](#)**  
+# 📦 Model Resources
+
+## 🔗 Model Weights
+Download the trained model checkpoint here:  
+[![Download Weights](https://img.shields.io/badge/Model%20Weights-best_model.pth-blue)](https://drive.google.com/file/d/1oTnWJ8InrZBs2arlWKmrS2eK_EnWuJoi/view?usp=sharing)
+
+> Use these weights for inference or fine-tuning tasks 
 
 ## Reproducibility Note
 
