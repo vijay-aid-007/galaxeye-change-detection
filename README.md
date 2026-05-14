@@ -27,11 +27,17 @@ training data, causing "significant domain shift". The model achieves F1 up
 to 0.955 on individual validation samples with actual damage. Full analysis 
 in the technical report.
 
----
-**[Model weights link] — **[https://drive.google.com/file/d/1oTnWJ8InrZBs2arlWKmrS2eK_EnWuJoi/view?usp=sharing](#)** 
----
-**[Model Check points] — **[https://drive.google.com/drive/folders/1LNl-GkWTJLfga-gPoabBJQkDMkSxY6P7?usp=sharing](#)** 
----
+
+# 📦 Model Resources
+
+## 🔗 Model Weights
+Download the trained model checkpoint here:  
+[![Download Weights](https://img.shields.io/badge/Model%20Weights-best_model.pth-blue)](https://drive.google.com/file/d/1oTnWJ8InrZBs2arlWKmrS2eK_EnWuJoi/view?usp=sharing)
+
+## 🗂️ Model Checkpoints
+Access all training checkpoints here:  
+[![Checkpoints Folder](https://img.shields.io/badge/Model%20Checkpoints-Google%20Drive-green)](https://drive.google.com/drive/folders/1LNl-GkWTJLfga-gPoabBJQkDMkSxY6P7?usp=sharing)
+
 
 ## Requirements
 
